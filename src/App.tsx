@@ -1,6 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import ReactLiveEditor from "./pages/ReactLiveEditor";
-import WebIDE from "./pages/WebContainerPage";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ReactLiveEditor from './pages/ReactLiveEditor';
+import WebIDE from './pages/WebContainerPage';
 
 function App() {
   return (
@@ -11,7 +11,6 @@ function App() {
       </Routes>
     </Router>
   );
-  // return <ReactFileEditor />;
 }
 
 export default App;
