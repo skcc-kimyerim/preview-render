@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { FileNode } from "../utils/types";
+import Editor from "@monaco-editor/react";
 
 import {
   Copy,
@@ -467,55 +468,26 @@ export default function ReactLiveEditor() {
     <div className="min-h-screen bg-white w-full">
       {/* 헤더 */}
       <section className="w-full h-[50px] flex justify-between items-center">
-        <div className="flex items-center text-lg font-bold text-gray-900">
-          <Sparkles className="w-5 h-5 text-white mr-2" />
-          <span className="ml-4">React Live Editor</span>
+        <div className="flex items-center text-lg font-bold text-gray-900 ml-4">
+          <Sparkles className="w-5 h-5 mr-2" />
+          <span className="text-xl">React Live Editor</span>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Button
-            onClick={() => setShowFileSystem(!showFileSystem)}
-            size="sm"
-            className="text-xs"
-          >
+        <div className="flex items-center space-x-2 mr-4">
+          <Button onClick={() => setShowFileSystem(!showFileSystem)}>
             {showFileSystem ? "Hide Files" : "Show Files"}
           </Button>
-          <Button
-            onClick={() => loadExample(jsxExample)}
-            size="sm"
-            className="text-xs"
-          >
-            Input Example
-          </Button>
-          <Button
-            onClick={() => loadExample(todoExample)}
-            size="sm"
-            className="text-xs"
-          >
-            Todo Example
-          </Button>
-          <Button
-            onClick={handleReset}
-            size="sm"
-            className="text-xs flex items-center gap-1"
-          >
+          <Button onClick={() => loadExample(jsxExample)}>Input Example</Button>
+          <Button onClick={() => loadExample(todoExample)}>Todo Example</Button>
+          <Button onClick={handleReset}>
             <RotateCcw className="w-3 h-3" />
             Reset
           </Button>
-          <Button
-            onClick={handleCopy}
-            size="sm"
-            className="text-xs flex items-center gap-1"
-          >
+          <Button onClick={handleCopy}>
             <Copy className="w-3 h-3" />
             Copy
           </Button>
-          <Button
-            onClick={() => executeCode(code)}
-            size="sm"
-            className="text-xs flex items-center gap-1"
-            disabled={isExecuting}
-          >
+          <Button onClick={() => executeCode(code)} disabled={isExecuting}>
             <Play className="w-3 h-3" />
             {isExecuting ? "Running..." : "Run"}
           </Button>
@@ -612,17 +584,17 @@ export default function ReactLiveEditor() {
               </div>
             </div>
             <div className="flex-1 relative">
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                className="w-full h-full p-6 font-mono text-sm border-none outline-none resize-none bg-gray-900 text-gray-100 leading-relaxed"
-                placeholder="Enter your React component code here..."
-                spellCheck={false}
-                style={{
-                  background: "#0d1117",
-                  color: "#f0f6fc",
-                  fontFamily:
-                    'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+              <Editor
+                height="100%"
+                defaultLanguage="javascript"
+                defaultValue={code}
+                onChange={(value) => setCode(value ?? "")}
+                theme="vs-dark"
+                className="pt-2 bg-black"
+                options={{
+                  fontSize: 14,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
                 }}
               />
               <div className="absolute top-4 right-4 text-xs text-gray-500">
