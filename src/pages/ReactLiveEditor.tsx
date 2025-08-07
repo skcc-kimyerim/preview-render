@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { FileNode } from "../utils/types";
 import Editor from "@monaco-editor/react";
+import {
+  defaultCode,
+  defaultFiles,
+  jsxExample,
+  todoExample,
+  createIframeContent,
+} from "../utils/sample-files";
 
 import {
   Copy,
@@ -12,192 +19,13 @@ import {
   Plus,
   Folder,
   File,
-  X,
   FolderOpen,
 } from "lucide-react";
 import { Button } from "../components/Button";
 
-const defaultFiles: FileNode[] = [
-  {
-    name: "src",
-    type: "folder",
-    path: "src",
-    children: [
-      {
-        name: "App.js",
-        type: "file",
-        path: "src/App.js",
-        content: `import React, { useState } from 'react';
-import Counter from './components/Counter';
-import './App.css';
-
-function App() {
-  return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-md mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">My React App</h1>
-        <Counter />
-      </div>
-    </div>
-  );
-}
-
-export default App;`,
-      },
-      {
-        name: "App.css",
-        type: "file",
-        path: "src/App.css",
-        content: `/* Custom styles */
-.app {
-  text-align: center;
-}
-
-.counter-container {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}`,
-      },
-      {
-        name: "components",
-        type: "folder",
-        path: "src/components",
-        children: [
-          {
-            name: "Counter.js",
-            type: "file",
-            path: "src/components/Counter.js",
-            content: `import React, { useState } from 'react';
-
-function Counter() {
-  const [count, setCount] = useState(0);
-  
-  return (
-    <div className="counter-container bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Counter Component</h2>
-      <p className="text-2xl mb-4">Count: {count}</p>
-      <div className="space-x-2">
-        <button
-          onClick={() => setCount(count + 1)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Increment
-        </button>
-        <button 
-          onClick={() => setCount(count - 1)}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-        >
-          Decrement
-        </button>
-        <button 
-          onClick={() => setCount(0)}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-        >
-          Reset
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default Counter;`,
-          },
-        ],
-      },
-    ],
-  },
-];
-
-const defaultCode = `function MyComponent() {
-  const [count, setCount] = useState(0);
-  
-  return (
-    <div className="p-6 text-center">
-      <h1 className="text-2xl font-bold mb-4">Hello React!</h1>
-      <p className="mb-4">Count: {count}</p>
-      <button 
-        onClick={() => setCount(count + 1)}
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
-        Click me!
-      </button>
-    </div>
-  );
-}`;
-
-const jsxExample = `function MyComponent() {
-  const [name, setName] = useState('World');
-  
-  return (
-    <div className="p-6 max-w-md mx-auto bg-white rounded-lg shadow-md">
-      <h2 className="text-xl font-bold mb-4">Hello Example</h2>
-      <input 
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-full p-2 border rounded mb-4"
-        placeholder="Enter your name"
-      />
-      <p className="text-gray-700">Hello, {name}!</p>
-    </div>
-  );
-}`;
-
-const todoExample = `function MyComponent() {
-  const [todos, setTodos] = useState(['Learn React', 'Build something cool']);
-  const [newTodo, setNewTodo] = useState('');
-  
-  const addTodo = () => {
-    if (newTodo.trim()) {
-      setTodos([...todos, newTodo]);
-      setNewTodo('');
-    }
-  };
-  
-  const removeTodo = (index) => {
-    setTodos(todos.filter((_, i) => i !== index));
-  };
-  
-  return (
-    <div className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Todo List</h2>
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-          className="flex-1 p-2 border rounded"
-          placeholder="Add new todo"
-          onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-        />
-        <button
-          onClick={addTodo}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          Add
-        </button>
-      </div>
-      <ul className="space-y-2">
-        {todos.map((todo, index) => (
-          <li key={index} className="flex justify-between items-center p-2 bg-gray-100 rounded">
-            <span>{todo}</span>
-            <button
-              onClick={() => removeTodo(index)}
-              className="text-red-500 hover:text-red-700"
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}`;
-
 export default function ReactLiveEditor() {
   const [code, setCode] = useState(defaultCode);
+  const [editorMode, setEditorMode] = useState<"code" | "file">("code");
   const [error, setError] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -208,88 +36,23 @@ export default function ReactLiveEditor() {
   const [openFolders, setOpenFolders] = useState<Set<string>>(
     new Set(["src", "src/components"])
   );
-  const [openTabs, setOpenTabs] = useState<string[]>(["src/App.js"]);
   const [showFileSystem, setShowFileSystem] = useState(false);
 
-  const createIframeContent = useCallback((userCode: string) => {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body {
-      margin: 0; 
-      padding: 0; 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    }
-    #root { 
-      width: 100%; 
-      height: 100vh; 
-      overflow: auto; 
-    }
-  </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useCallback, useMemo } = React;
-    
-    try {
-      ${userCode}
-      
-      if (typeof MyComponent !== 'function') {
-        throw new Error('MyComponent must be a function');
-      }
-      
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(MyComponent));
-      
-      // 성공 메시지 전송
-      window.parent.postMessage({ type: 'success' }, '*');
-      
-    } catch (error) {
-      // 에러 메시지 전송
-      window.parent.postMessage({ 
-        type: 'error', 
-        message: error.message,
-        stack: error.stack 
-      }, '*');
-      
-      // 에러를 화면에도 표시
-      document.getElementById('root').innerHTML = 
-        '<div style="padding: 20px; color: red; font-family: monospace; white-space: pre-wrap;">' +
-        'Error: ' + error.message + 
-        '</div>';
-    }
-  </script>
-</body>
-</html>`;
+  const executeCode = useCallback((codeToExecute: string) => {
+    if (!iframeRef.current) return;
+
+    setIsExecuting(true);
+    setError(null);
+
+    const iframeContent = createIframeContent(codeToExecute);
+    const blob = new Blob([iframeContent], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+
+    iframeRef.current.src = url;
+
+    // 이전 URL 정리
+    return () => URL.revokeObjectURL(url);
   }, []);
-
-  const executeCode = useCallback(
-    (codeToExecute: string) => {
-      if (!iframeRef.current) return;
-
-      setIsExecuting(true);
-      setError(null);
-
-      const iframeContent = createIframeContent(codeToExecute);
-      const blob = new Blob([iframeContent], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-
-      iframeRef.current.src = url;
-
-      // 이전 URL 정리
-      return () => URL.revokeObjectURL(url);
-    },
-    [createIframeContent]
-  );
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -376,19 +139,7 @@ export default function ReactLiveEditor() {
 
   const openFile = (path: string) => {
     setActiveFile(path);
-    if (!openTabs.includes(path)) {
-      setOpenTabs((prev) => [...prev, path]);
-    }
-  };
-
-  const closeTab = (path: string) => {
-    setOpenTabs((prev) => {
-      const newTabs = prev.filter((tab) => tab !== path);
-      if (activeFile === path && newTabs.length > 0) {
-        setActiveFile(newTabs[newTabs.length - 1]);
-      }
-      return newTabs;
-    });
+    setEditorMode("file");
   };
 
   const addNewFile = (
@@ -525,58 +276,23 @@ export default function ReactLiveEditor() {
             </div>
           )}
 
-          {/* 파일 에디터 탭 (조건부 렌더링) */}
-          {showFileSystem && (
-            <div className="flex flex-col border-r border-gray-200 w-64">
-              {/* 탭 바 */}
-              <div className="flex items-center bg-gray-50 border-b border-gray-200 min-h-[40px]">
-                {openTabs.map((tab) => (
-                  <div
-                    key={tab}
-                    className={`flex items-center gap-2 px-3 py-2 border-r border-gray-200 cursor-pointer ${
-                      activeFile === tab
-                        ? "bg-white border-b-2 border-blue-500"
-                        : "hover:bg-gray-100"
-                    }`}
-                    onClick={() => setActiveFile(tab)}
-                  >
-                    <File className="w-3 h-3" />
-                    <span className="text-sm">{tab.split("/").pop()}</span>
-                    {openTabs.length > 1 && (
-                      <X
-                        className="w-3 h-3 hover:text-red-500"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeTab(tab);
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* 파일 에디터 */}
-              <div className="flex-1">
-                <textarea
-                  value={activeFileContent}
-                  onChange={(e) =>
-                    updateFileContent(activeFile, e.target.value)
-                  }
-                  className="w-full h-full p-4 font-mono text-sm border-none outline-none resize-none bg-gray-900 text-gray-100 leading-relaxed"
-                  placeholder="Select a file to edit..."
-                  spellCheck={false}
-                />
-              </div>
-            </div>
-          )}
-
           {/* 코드 에디터 */}
           <div className="flex flex-col border-r border-gray-200 flex-[2] h-full">
             <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
               <Code className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                Code Editor
+                {editorMode === "file"
+                  ? `File: ${activeFile.split("/").pop()}`
+                  : "Code Editor"}
               </span>
+              {editorMode === "file" && (
+                <button
+                  onClick={() => setEditorMode("code")}
+                  className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Back to Code
+                </button>
+              )}
               <div className="ml-auto flex items-center gap-1">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -587,8 +303,14 @@ export default function ReactLiveEditor() {
               <Editor
                 height="100%"
                 defaultLanguage="javascript"
-                defaultValue={code}
-                onChange={(value) => setCode(value ?? "")}
+                value={editorMode === "file" ? activeFileContent : code}
+                onChange={(value) => {
+                  if (editorMode === "file") {
+                    updateFileContent(activeFile, value ?? "");
+                  } else {
+                    setCode(value ?? "");
+                  }
+                }}
                 theme="vs-dark"
                 className="pt-2 bg-black"
                 options={{
@@ -598,7 +320,8 @@ export default function ReactLiveEditor() {
                 }}
               />
               <div className="absolute top-4 right-4 text-xs text-gray-500">
-                {code.length} chars
+                {(editorMode === "file" ? activeFileContent : code).length}{" "}
+                chars
               </div>
             </div>
           </div>
