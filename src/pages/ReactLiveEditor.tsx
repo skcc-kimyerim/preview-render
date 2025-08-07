@@ -4,10 +4,8 @@ import Editor from "@monaco-editor/react";
 import {
   defaultCode,
   defaultFiles,
-  jsxExample,
-  todoExample,
   createIframeContent,
-} from "../utils/sample-files";
+} from "../utils/file-contents";
 
 import {
   Copy,
@@ -25,34 +23,36 @@ import { Button } from "../components/Button";
 
 export default function ReactLiveEditor() {
   const [code, setCode] = useState(defaultCode);
-  const [editorMode, setEditorMode] = useState<"code" | "file">("code");
   const [error, setError] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // 파일 시스템 관련 상태 추가
   const [files, setFiles] = useState<FileNode[]>(defaultFiles);
-  const [activeFile, setActiveFile] = useState<string>("src/App.js");
+  const [activeFile, setActiveFile] = useState<string>("src/App.jsx");
   const [openFolders, setOpenFolders] = useState<Set<string>>(
     new Set(["src", "src/components"])
   );
   const [showFileSystem, setShowFileSystem] = useState(false);
 
-  const executeCode = useCallback((codeToExecute: string) => {
-    if (!iframeRef.current) return;
+  const executeCode = useCallback(
+    (codeToExecute?: string) => {
+      if (!iframeRef.current) return;
 
-    setIsExecuting(true);
-    setError(null);
+      setIsExecuting(true);
+      setError(null);
 
-    const iframeContent = createIframeContent(codeToExecute);
-    const blob = new Blob([iframeContent], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
+      const iframeContent = createIframeContent(files, codeToExecute);
+      const blob = new Blob([iframeContent], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
 
-    iframeRef.current.src = url;
+      iframeRef.current.src = url;
 
-    // 이전 URL 정리
-    return () => URL.revokeObjectURL(url);
-  }, []);
+      // 이전 URL 정리
+      return () => URL.revokeObjectURL(url);
+    },
+    [files]
+  );
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -69,13 +69,13 @@ export default function ReactLiveEditor() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      executeCode(code);
-    }, 500); // 500ms debounce
+  // useEffect(() => {
+  //   const timeoutId = setTimeout(() => {
+  //     executeCode(code);
+  //   }, 500); // 500ms debounce
 
-    return () => clearTimeout(timeoutId);
-  }, [code, executeCode]);
+  //   return () => clearTimeout(timeoutId);
+  // }, [code, files]);
 
   const handleReset = () => {
     setCode(defaultCode);
@@ -139,7 +139,6 @@ export default function ReactLiveEditor() {
 
   const openFile = (path: string) => {
     setActiveFile(path);
-    setEditorMode("file");
   };
 
   const addNewFile = (
@@ -228,8 +227,6 @@ export default function ReactLiveEditor() {
           <Button onClick={() => setShowFileSystem(!showFileSystem)}>
             {showFileSystem ? "Hide Files" : "Show Files"}
           </Button>
-          <Button onClick={() => loadExample(jsxExample)}>Input Example</Button>
-          <Button onClick={() => loadExample(todoExample)}>Todo Example</Button>
           <Button onClick={handleReset}>
             <RotateCcw className="w-3 h-3" />
             Reset
@@ -281,18 +278,8 @@ export default function ReactLiveEditor() {
             <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-200">
               <Code className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                {editorMode === "file"
-                  ? `File: ${activeFile.split("/").pop()}`
-                  : "Code Editor"}
+                File: {activeFile.split("/").pop()}
               </span>
-              {editorMode === "file" && (
-                <button
-                  onClick={() => setEditorMode("code")}
-                  className="ml-2 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Back to Code
-                </button>
-              )}
               <div className="ml-auto flex items-center gap-1">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
@@ -303,13 +290,9 @@ export default function ReactLiveEditor() {
               <Editor
                 height="100%"
                 defaultLanguage="javascript"
-                value={editorMode === "file" ? activeFileContent : code}
+                value={activeFileContent}
                 onChange={(value) => {
-                  if (editorMode === "file") {
-                    updateFileContent(activeFile, value ?? "");
-                  } else {
-                    setCode(value ?? "");
-                  }
+                  updateFileContent(activeFile, value ?? "");
                 }}
                 theme="vs-dark"
                 className="pt-2 bg-black"
@@ -320,8 +303,7 @@ export default function ReactLiveEditor() {
                 }}
               />
               <div className="absolute top-4 right-4 text-xs text-gray-500">
-                {(editorMode === "file" ? activeFileContent : code).length}{" "}
-                chars
+                {activeFileContent.length} chars
               </div>
             </div>
           </div>
@@ -368,7 +350,8 @@ export default function ReactLiveEditor() {
               <iframe
                 ref={iframeRef}
                 className="w-full h-full border-none"
-                sandbox="allow-scripts"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                allow="cross-origin-isolated"
                 title="React Component Preview"
               />
             </div>
